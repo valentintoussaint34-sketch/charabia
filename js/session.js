@@ -150,6 +150,8 @@ const Session = {
   quit() {
     TTS.stop();
     if (typeof Render !== 'undefined') Render.releaseMic();
+    // une session quittée en cours doit quand même partir en synchro (reprise sur l'autre appareil)
+    if (typeof Sync !== 'undefined') Sync.push().catch(() => {});
     Session.cur = null;
     document.documentElement.style.setProperty('--accent', 'var(--en)');
     Screens.home();

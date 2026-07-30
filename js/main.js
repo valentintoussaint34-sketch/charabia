@@ -30,6 +30,13 @@
       }
     }).catch(() => {});
   }
+  // ...et à chaque fois qu'on quitte/masque l'app (best-effort) : la progression
+  // en cours part vers l'autre appareil même sans terminer la session
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden' && typeof Sync !== 'undefined' && Sync.enabled()) {
+      Sync.push().catch(() => {});
+    }
+  });
 
   if (!Store.state.onboarded) { Screens.home(); Screens.onboarding(); }
   else Screens.home();
