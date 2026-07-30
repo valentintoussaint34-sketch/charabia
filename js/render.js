@@ -267,6 +267,7 @@ const Render = {
       const model = (step.accepted && step.accepted[0]) || '';
       let ok = U.answerMatches(given, step.accepted);
       if (!ok && step.type === 'gap_fill') ok = U.gapMatches(step.text, step.accepted, given);
+      if (!ok && step.type === 'error_hunt') ok = U.diffMatches(step.text, step.accepted, given);
       if (ok) {
         stage.querySelector('#fb').innerHTML = Render.feedbackBox(true, null, U.esc(step.explanation || ''));
         Render.continueBtn(stage, item, stepId, true, true);

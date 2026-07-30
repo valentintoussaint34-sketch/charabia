@@ -57,6 +57,25 @@ const U = {
     if (!g) return false;
     return (accepted || []).some(a => U.norm(a) === g);
   },
+  // Chasse à l'erreur : accepte aussi la seule portion corrigée (« estoy » pour
+  // « Soy muy cansado hoy » → « Estoy muy cansado hoy »). La portion est le
+  // segment qui diffère entre la phrase fautive et la correction ; si les
+  // changements sont dispersés, la phrase complète reste exigée.
+  diffMatches(text, accepted, given) {
+    const g = U.norm(given);
+    if (!g) return false;
+    const src = U.norm(text).split(' ');
+    for (const acc of (accepted || [])) {
+      const dst = U.norm(acc).split(' ');
+      let p = 0;
+      while (p < src.length && p < dst.length && src[p] === dst[p]) p++;
+      let s = 0;
+      while (s < src.length - p && s < dst.length - p && src[src.length - 1 - s] === dst[dst.length - 1 - s]) s++;
+      const mid = dst.slice(p, dst.length - s).join(' ');
+      if (mid && g === mid) return true;
+    }
+    return false;
+  },
   // Textes à trous : accepte aussi le segment complet (« have you been » pour
   // « How long ___ you ___ (be)… ») et la phrase entière — pas seulement les
   // mots manquants « have / been ». Retour de Valentin du 31/07/2026.
