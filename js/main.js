@@ -51,8 +51,12 @@
   document.addEventListener('keydown', e => {
     if (!Session.cur) return;
     const tag = e.target && e.target.tagName;
-    if (tag === 'TEXTAREA') return;                    // Entrée = retour à la ligne
-    if (tag === 'INPUT' && !e.target.disabled) return; // l'input gère déjà Entrée
+    if (tag === 'TEXTAREA') return; // Entrée = retour à la ligne
+    // Un appui dans un champ ne fait QUE valider (le champ gère Entrée lui-même).
+    // Après validation, le champ désactivé perd le focus → l'appui SUIVANT,
+    // depuis la page, déclenche « Continuer ». Sans ce garde-fou, le même appui
+    // validait ET continuait : la correction ne s'affichait jamais (bug du 31/07).
+    if (tag === 'INPUT') return;
     const stage = document.getElementById('stage');
     if (!stage) return;
     if (e.key === 'Enter') {
