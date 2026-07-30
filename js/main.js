@@ -30,11 +30,19 @@
       }
     }).catch(() => {});
   }
-  // ...et à chaque fois qu'on quitte/masque l'app (best-effort) : la progression
-  // en cours part vers l'autre appareil même sans terminer la session
+  // ...et à chaque masquage/retour de l'app : on envoie en partant, on récupère en revenant
+  // (l'app reste ainsi à jour même si elle vit en arrière-plan sur le téléphone)
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden' && typeof Sync !== 'undefined' && Sync.enabled()) {
+    if (typeof Sync === 'undefined' || !Sync.enabled()) return;
+    if (document.visibilityState === 'hidden') {
       Sync.push().catch(() => {});
+    } else if (document.visibilityState === 'visible' && !Session.cur) {
+      Sync.auto().then(r => {
+        if (r === 'pulled') {
+          U.toast('🔄 Progression synchronisée depuis ton autre appareil');
+          if (Screens.current === 'home' && !document.getElementById('modal-root').innerHTML) Screens.home();
+        }
+      }).catch(() => {});
     }
   });
 
