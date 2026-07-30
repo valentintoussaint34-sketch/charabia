@@ -1,14 +1,26 @@
 /* Charabia — appels Gemini (correction IA, moteur §8) */
 const Gemini = {
-  MODEL: 'gemini-2.5-flash',
+  // essayés dans l'ordre ; l'alias -latest suit les nouvelles versions de Google
+  MODELS: ['gemini-flash-latest', 'gemini-2.5-flash'],
+  MODEL: 'gemini-flash-latest',
 
   hasKey() { return !!(Store.state.settings.gemini_key || '').trim(); },
   available() { return Gemini.hasKey() && U.online(); },
 
+  // essaie chaque modèle de la liste ; bascule sur le suivant si l'un disparaît (http404)
   async call(prompt, wantJson) {
+    let lastErr = null;
+    for (const model of Gemini.MODELS) {
+      try { return await Gemini.callModel(model, prompt, wantJson); }
+      catch (e) { lastErr = e; if (String(e.message) !== 'http404') throw e; }
+    }
+    throw lastErr;
+  },
+
+  async callModel(model, prompt, wantJson) {
     const key = Store.state.settings.gemini_key.trim();
     // clé passée en en-tête, jamais dans l'URL (les URL traînent dans les logs réseau)
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${Gemini.MODEL}:generateContent`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
     const body = {
       contents: [{ parts: [{ text: prompt }] }],
       generationConfig: wantJson ? { responseMimeType: 'application/json' } : {},

@@ -328,7 +328,15 @@ const Screens = {
       if (!Gemini.hasKey()) return U.toast('Colle d\'abord ta clé API');
       e.target.textContent = '…';
       try { await Gemini.call('Réponds uniquement : OK', false); U.toast('✨ Connexion IA opérationnelle !'); }
-      catch (err) { U.toast(err.message === 'quota' ? 'Quota atteint — réessaie plus tard' : 'Échec — vérifie la clé'); }
+      catch (err) {
+        const m = String(err.message || err.name || err);
+        const detail = m === 'quota' ? 'Quota atteint — réessaie plus tard'
+          : m === 'http400' || m === 'http403' ? 'Clé refusée (' + m + ') — re-copie-la depuis aistudio.google.com (une clé neuve peut mettre quelques minutes à s\'activer)'
+          : m === 'http404' ? 'Modèle introuvable (' + m + ') — dis-le à Claude'
+          : m.includes('abort') || m === 'AbortError' ? 'Délai dépassé — vérifie ta connexion'
+          : 'Échec (' + m + ') — vérifie la clé';
+        U.toast(detail, 5000);
+      }
       e.target.textContent = 'Tester';
     };
     document.getElementById('ghtok').onchange = e => {
