@@ -57,6 +57,34 @@ const U = {
     if (!g) return false;
     return (accepted || []).some(a => U.norm(a) === g);
   },
+  // Textes à trous : accepte aussi le segment complet (« have you been » pour
+  // « How long ___ you ___ (be)… ») et la phrase entière — pas seulement les
+  // mots manquants « have / been ». Retour de Valentin du 31/07/2026.
+  gapMatches(text, accepted, given) {
+    const t = String(text || '');
+    const gapRe = /_{2,}/g;
+    const gaps = (t.match(gapRe) || []).length;
+    if (!gaps) return false;
+    const g = U.norm(given);
+    for (const acc of (accepted || [])) {
+      const parts = String(acc).split('/').map(s => s.trim()).filter(Boolean);
+      if (parts.length !== gaps) continue;
+      // les indications entre parenthèses de l'énoncé, ex. « (be) », ne sont pas exigées
+      const strip = s => U.norm(String(s).replace(/\([^)]*\)/g, ' '));
+      let i = 0;
+      const full = t.replace(gapRe, () => parts[i++] || '');
+      if (g === strip(full)) return true;
+      if (gaps >= 2) {
+        const first = t.search(/_{2,}/);
+        let last = -1, m; const re = /_{2,}/g;
+        while ((m = re.exec(t))) last = m.index + m[0].length;
+        let j = 0;
+        const seg = t.slice(first, last).replace(/_{2,}/g, () => parts[j++] || '');
+        if (g === strip(seg)) return true;
+      }
+    }
+    return false;
+  },
   // Mini-rendu markdown : gras, italique, code, tableaux, listes, citations, barré
   md(src) {
     if (!src) return '';
