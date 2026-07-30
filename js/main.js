@@ -38,6 +38,30 @@
     }
   });
 
+  // Raccourcis clavier (PC) : Entrée = Continuer / Voir la réponse / Valider ;
+  // 1-2-3 = Raté / Hésité / Je savais sur les flashcards
+  document.addEventListener('keydown', e => {
+    if (!Session.cur) return;
+    const tag = e.target && e.target.tagName;
+    if (tag === 'TEXTAREA') return;                    // Entrée = retour à la ligne
+    if (tag === 'INPUT' && !e.target.disabled) return; // l'input gère déjà Entrée
+    const stage = document.getElementById('stage');
+    if (!stage) return;
+    if (e.key === 'Enter') {
+      const btn = Array.from(stage.querySelectorAll('button.btn'))
+        .find(b => !b.disabled && b.offsetParent !== null &&
+          /continuer|voir la réponse|suivant|terminé|terminer|valider/i.test(b.textContent));
+      if (btn) { e.preventDefault(); btn.click(); }
+    } else if (['1', '2', '3'].includes(e.key)) {
+      const grade = stage.querySelector('.grade');
+      if (grade && grade.offsetParent !== null) {
+        const btns = grade.querySelectorAll('button');
+        const b = btns[Number(e.key) - 1];
+        if (b) { e.preventDefault(); b.click(); }
+      }
+    }
+  });
+
   if (!Store.state.onboarded) { Screens.home(); Screens.onboarding(); }
   else Screens.home();
 })();
