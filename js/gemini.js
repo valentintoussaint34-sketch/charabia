@@ -55,7 +55,8 @@ ${exercise.text ? 'Phrase à corriger : ' + exercise.text : ''}
 Réponse attendue (exemples corrects) : ${(exercise.accepted || []).join(' / ') || exercise.explanation || 'voir consigne'}
 Réponse de l'apprenant : "${given}"
 La réponse de l'apprenant est-elle correcte (sens ET grammaire, variantes naturelles acceptées, fautes réelles refusées) ?
-Réponds en JSON strict : {"correct": true|false, "explanation": "explication brève en français (pourquoi, avec la forme correcte)"}`;
+RÈGLE SPÉCIALE ACCENTS : si la SEULE différence avec une réponse correcte est l'accentuation ou les signes diacritiques (á, é, í, ó, ú, ñ, ü…), la réponse EST correcte : mets "correct": true ET "accents_only": true, et rappelle la bonne écriture dans l'explication. Toute autre faute (orthographe, mot, conjugaison) → "correct": false.
+Réponds en JSON strict : {"correct": true|false, "accents_only": true|false, "explanation": "explication brève en français (pourquoi, avec la forme correcte)"}`;
     return await Gemini.call(prompt, true);
   },
 

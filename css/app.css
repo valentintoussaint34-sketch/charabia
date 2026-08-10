@@ -190,6 +190,7 @@ textarea.txtin { min-height: 140px; resize: vertical; line-height: 1.55; }
 }
 .feedback.ok { background: var(--ok-soft); border-left-color: var(--ok); }
 .feedback.ko { background: var(--ko-soft); border-left-color: var(--ko); }
+.feedback.warn { background: var(--warn-soft); border-left-color: var(--warn); }
 .feedback.neutral { background: var(--accent-soft); border-left-color: var(--accent); }
 .feedback b.t { display: block; font-size: 14.5px; margin-bottom: 4px; }
 .reading-text { font-size: 15.5px; line-height: 1.7; margin-bottom: 8px; }

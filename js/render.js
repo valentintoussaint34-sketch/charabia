@@ -203,7 +203,11 @@ const Render = {
   },
 
   feedbackBox(ok, title, why) {
-    return `<div class="feedback ${ok ? 'ok' : 'ko'}"><b class="t">${ok ? '✓ ' + (title || 'Exact !') : '✗ ' + (title || 'Pas tout à fait')}</b><span>${why || ''}</span></div>`;
+    // ok : true (vert) | 'warn' (jaune : correct mais accents à revoir) | false (rouge)
+    const cls = ok === 'warn' ? 'warn' : ok ? 'ok' : 'ko';
+    const head = ok === 'warn' ? '〰 ' + (title || 'Correct — mais les accents !')
+      : ok ? '✓ ' + (title || 'Exact !') : '✗ ' + (title || 'Pas tout à fait');
+    return `<div class="feedback ${cls}"><b class="t">${head}</b><span>${why || ''}</span></div>`;
   },
   continueBtn(stage, item, stepId, ok, autocorrect) {
     const b = U.el('<button class="btn">Continuer</button>');
@@ -265,11 +269,18 @@ const Render = {
       input.disabled = true;
       stage.querySelector('#go').style.display = 'none';
       const model = (step.accepted && step.accepted[0]) || '';
-      let ok = U.answerMatches(given, step.accepted);
+      // comparaison stricte (accents compris) puis souple : parfait = vert,
+      // bon à l'accent près = compté bon mais affiché en jaune (demande de Valentin)
+      const exact = U.answerMatches(given, step.accepted, true)
+        || (step.type === 'gap_fill' && U.gapMatches(step.text, step.accepted, given, true))
+        || (step.type === 'error_hunt' && U.diffMatches(step.text, step.accepted, given, true));
+      let ok = exact || U.answerMatches(given, step.accepted);
       if (!ok && step.type === 'gap_fill') ok = U.gapMatches(step.text, step.accepted, given);
       if (!ok && step.type === 'error_hunt') ok = U.diffMatches(step.text, step.accepted, given);
       if (ok) {
-        stage.querySelector('#fb').innerHTML = Render.feedbackBox(true, null, U.esc(step.explanation || ''));
+        const note = exact ? U.esc(step.explanation || '')
+          : `La bonne écriture : <b>${U.esc(model)}</b><br>` + U.esc(step.explanation || '');
+        stage.querySelector('#fb').innerHTML = Render.feedbackBox(exact ? true : 'warn', null, note);
         Render.continueBtn(stage, item, stepId, true, true);
         return;
       }
@@ -277,7 +288,8 @@ const Render = {
         stage.querySelector('#fb').innerHTML = '<div class="hint">✨ Vérification par l\'IA…</div>';
         try {
           const v = await Gemini.checkAnswer(Session.cur.lang, step, given);
-          stage.querySelector('#fb').innerHTML = Render.feedbackBox(!!v.correct, null,
+          const verdict = v.correct ? (v.accents_only ? 'warn' : true) : false;
+          stage.querySelector('#fb').innerHTML = Render.feedbackBox(verdict, null,
             U.esc(v.explanation || '') + (model ? `<br><b>Réponse type :</b> ${U.esc(model)}` : ''));
           Render.continueBtn(stage, item, stepId, !!v.correct, true);
           return;
@@ -428,14 +440,16 @@ const Render = {
       const submit = async () => {
         if (!input.value.trim()) return;
         input.disabled = true; zone.querySelector('#qgo').style.display = 'none';
-        let ok = U.answerMatches(input.value, q.accepted);
+        const exact = U.answerMatches(input.value, q.accepted, true);
+        let ok = exact || U.answerMatches(input.value, q.accepted);
         const model = (q.accepted && q.accepted[0]) || q.explanation || '';
         if (!ok && q.ai_check && Gemini.available()) {
           stage.querySelector('#fb').innerHTML = '<div class="hint">✨ Vérification par l\'IA…</div>';
           try {
             const v = await Gemini.checkAnswer(l, { question: q.question, accepted: q.accepted, explanation: q.explanation }, input.value);
             ok = !!v.correct;
-            stage.querySelector('#fb').innerHTML = Render.feedbackBox(ok, null, U.esc(v.explanation || ''));
+            const verdict = v.correct ? (v.accents_only ? 'warn' : true) : false;
+            stage.querySelector('#fb').innerHTML = Render.feedbackBox(verdict, null, U.esc(v.explanation || ''));
             const c = U.el('<button class="btn">Continuer</button>');
             c.onclick = () => { Session.record(item, qId, ok, true); nextQ(); };
             stage.querySelector('#fb').appendChild(c);
@@ -453,7 +467,9 @@ const Render = {
           stage.querySelector('#sko').onclick = () => { Session.record(item, qId, false, true); nextQ(); };
           return;
         }
-        stage.querySelector('#fb').innerHTML = Render.feedbackBox(ok, null, (ok ? '' : `<b>Réponse :</b> ${U.esc(model)}<br>`) + U.esc(q.explanation || ''));
+        const verdict = ok ? (exact ? true : 'warn') : false;
+        stage.querySelector('#fb').innerHTML = Render.feedbackBox(verdict, null,
+          (ok ? (exact ? '' : `La bonne écriture : <b>${U.esc(model)}</b><br>`) : `<b>Réponse :</b> ${U.esc(model)}<br>`) + U.esc(q.explanation || ''));
         const c = U.el('<button class="btn">Continuer</button>');
         c.onclick = () => { Session.record(item, qId, ok, true); nextQ(); };
         stage.querySelector('#fb').appendChild(c);

@@ -42,31 +42,33 @@ const U = {
   daysBetween(k1, k2) {
     return Math.round((U.parseKey(k2) - U.parseKey(k1)) / 86400000);
   },
-  // Normalisation des réponses : minuscules, sans accents, ponctuation légère ignorée
-  norm(s) {
-    return String(s || '')
-      .toLowerCase()
-      .normalize('NFD').replace(/[̀-ͯ]/g, '')
+  // Normalisation des réponses : minuscules, ponctuation légère ignorée ;
+  // sans accents par défaut, keepAccents=true pour la comparaison stricte
+  // (permet le verdict jaune « correct mais accents à revoir »)
+  norm(s, keepAccents) {
+    let x = String(s || '').toLowerCase();
+    if (!keepAccents) x = x.normalize('NFD').replace(/[̀-ͯ]/g, '');
+    return x
       .replace(/[’‘]/g, "'")
       .replace(/[.,;:!?¿¡«»"()]/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
   },
-  answerMatches(given, accepted) {
-    const g = U.norm(given);
+  answerMatches(given, accepted, keepAccents) {
+    const g = U.norm(given, keepAccents);
     if (!g) return false;
-    return (accepted || []).some(a => U.norm(a) === g);
+    return (accepted || []).some(a => U.norm(a, keepAccents) === g);
   },
   // Chasse à l'erreur : accepte aussi la seule portion corrigée (« estoy » pour
   // « Soy muy cansado hoy » → « Estoy muy cansado hoy »). La portion est le
   // segment qui diffère entre la phrase fautive et la correction ; si les
   // changements sont dispersés, la phrase complète reste exigée.
-  diffMatches(text, accepted, given) {
-    const g = U.norm(given);
+  diffMatches(text, accepted, given, keepAccents) {
+    const g = U.norm(given, keepAccents);
     if (!g) return false;
-    const src = U.norm(text).split(' ');
+    const src = U.norm(text, keepAccents).split(' ');
     for (const acc of (accepted || [])) {
-      const dst = U.norm(acc).split(' ');
+      const dst = U.norm(acc, keepAccents).split(' ');
       let p = 0;
       while (p < src.length && p < dst.length && src[p] === dst[p]) p++;
       let s = 0;
@@ -79,17 +81,17 @@ const U = {
   // Textes à trous : accepte aussi le segment complet (« have you been » pour
   // « How long ___ you ___ (be)… ») et la phrase entière — pas seulement les
   // mots manquants « have / been ». Retour de Valentin du 31/07/2026.
-  gapMatches(text, accepted, given) {
+  gapMatches(text, accepted, given, keepAccents) {
     const t = String(text || '');
     const gapRe = /_{2,}/g;
     const gaps = (t.match(gapRe) || []).length;
     if (!gaps) return false;
-    const g = U.norm(given);
+    const g = U.norm(given, keepAccents);
     for (const acc of (accepted || [])) {
       const parts = String(acc).split('/').map(s => s.trim()).filter(Boolean);
       if (parts.length !== gaps) continue;
       // les indications entre parenthèses de l'énoncé, ex. « (be) », ne sont pas exigées
-      const strip = s => U.norm(String(s).replace(/\([^)]*\)/g, ' '));
+      const strip = s => U.norm(String(s).replace(/\([^)]*\)/g, ' '), keepAccents);
       let i = 0;
       const full = t.replace(gapRe, () => parts[i++] || '');
       if (g === strip(full)) return true;
