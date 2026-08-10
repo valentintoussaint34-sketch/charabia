@@ -318,7 +318,7 @@ const Screens = {
       <div class="set">Exporter ma sauvegarde <button class="btn ghost small" onclick="Store.exportData(); U.toast('Sauvegarde téléchargée 💾')">Exporter</button></div>
       <div class="set">Importer une sauvegarde <input type="file" id="imp" accept=".json" style="max-width:170px"></div>
       <div class="set"><span>Rappel quotidien<br><span class="sub">le plus fiable : une alarme Android à ton heure d'étude</span></span>⏰</div>
-      <p class="hint mt">Charabia v1 · tes données restent sur ton téléphone.</p>
+      <p class="hint mt">Charabia · version du ${U.esc(document.lastModified)} · tes données restent sur ton appareil.</p>
       ${Screens.nav('gear')}`;
     document.getElementById('dur').onchange = e => { s.session_min = Number(e.target.value); Store.save(); };
     document.getElementById('rate').onchange = e => { s.tts_rate_factor = Number(e.target.value); Store.save(); };
