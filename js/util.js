@@ -59,6 +59,23 @@ const U = {
     if (!g) return false;
     return (accepted || []).some(a => U.norm(a, keepAccents) === g);
   },
+  // Questions de compréhension : accepte une réponse qui CONTIENT l'expression
+  // attendue avec du contexte autour (« to take on too many projects » pour
+  // « to take on »), dans la limite de ~6 mots de plus (retour de Valentin)
+  containsMatches(given, accepted, keepAccents) {
+    const gn = U.norm(given, keepAccents);
+    if (!gn) return false;
+    const g = ' ' + gn + ' ';
+    const gWords = gn.split(' ').length;
+    return (accepted || []).some(a => {
+      const n = U.norm(a, keepAccents);
+      if (!n) return false;
+      const aWords = n.split(' ').length;
+      // expression d'un seul mot : quasi-exact exigé (sinon « in » matcherait partout)
+      const extra = aWords >= 2 ? 8 : 2;
+      return gWords <= aWords + extra && g.includes(' ' + n + ' ');
+    });
+  },
   // Chasse à l'erreur : accepte aussi la seule portion corrigée (« estoy » pour
   // « Soy muy cansado hoy » → « Estoy muy cansado hoy »). La portion est le
   // segment qui diffère entre la phrase fautive et la correction ; si les

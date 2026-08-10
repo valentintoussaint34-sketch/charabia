@@ -440,8 +440,8 @@ const Render = {
       const submit = async () => {
         if (!input.value.trim()) return;
         input.disabled = true; zone.querySelector('#qgo').style.display = 'none';
-        const exact = U.answerMatches(input.value, q.accepted, true);
-        let ok = exact || U.answerMatches(input.value, q.accepted);
+        const exact = U.answerMatches(input.value, q.accepted, true) || U.containsMatches(input.value, q.accepted, true);
+        let ok = exact || U.answerMatches(input.value, q.accepted) || U.containsMatches(input.value, q.accepted);
         const model = (q.accepted && q.accepted[0]) || q.explanation || '';
         if (!ok && q.ai_check && Gemini.available()) {
           stage.querySelector('#fb').innerHTML = '<div class="hint">✨ Vérification par l\'IA…</div>';
