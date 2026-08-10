@@ -28,15 +28,34 @@ const TTS = {
       .filter(s => s.length > 1);
   },
 
-  stop() { try { speechSynthesis.cancel(); } catch (e) {} },
+  _paused: false,
+  _pending: null,
+
+  stop() {
+    TTS._paused = false; TTS._pending = null;
+    try { speechSynthesis.cancel(); } catch (e) {}
+  },
+  // pause/reprise conscientes de l'enchaînement phrase par phrase :
+  // si la pause tombe entre deux phrases, la suivante attend la reprise
+  pause() {
+    TTS._paused = true;
+    try { speechSynthesis.pause(); } catch (e) {}
+  },
+  resume() {
+    TTS._paused = false;
+    try { speechSynthesis.resume(); } catch (e) {}
+    if (TTS._pending) { const f = TTS._pending; TTS._pending = null; f(); }
+  },
 
   speak(text, langCode, rate, onEnd) {
     TTS.stop();
+    TTS._paused = false; TTS._pending = null;
     const parts = TTS.sentences(text);
     const voice = TTS.pick(langCode);
     let i = 0;
     const factor = Store.state.settings.tts_rate_factor || 1;
     const next = () => {
+      if (TTS._paused) { TTS._pending = next; return; }
       if (i >= parts.length) { if (onEnd) onEnd(); return; }
       const u = new SpeechSynthesisUtterance(parts[i]);
       if (voice) u.voice = voice;

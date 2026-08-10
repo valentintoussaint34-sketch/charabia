@@ -394,12 +394,21 @@ const Render = {
       </div>` : ''}`;
     if (isListening) {
       const btn = stage.querySelector('#play');
+      let state = 'idle'; // idle | playing | paused
+      const setBtn = st => {
+        state = st;
+        btn.textContent = st === 'playing' ? '❚❚' : '▶';
+        btn.classList.toggle('playing', st === 'playing');
+      };
       btn.onclick = () => {
-        btn.classList.add('playing');
-        TTS.speak(step.text_md, l === 'en' ? (step.voice || 'en-GB') : (step.voice || 'es-ES'), item._rate || step.rate || 0.9, () => btn.classList.remove('playing'));
+        if (state === 'playing') { TTS.pause(); setBtn('paused'); return; }
+        if (state === 'paused') { TTS.resume(); setBtn('playing'); return; }
+        setBtn('playing');
+        TTS.speak(step.text_md, l === 'en' ? (step.voice || 'en-GB') : (step.voice || 'es-ES'), item._rate || step.rate || 0.9, () => setBtn('idle'));
       };
       stage.querySelectorAll('#speed button').forEach(b => b.onclick = () => {
         item._rate = Number(b.dataset.r);
+        TTS.stop(); setBtn('idle'); // nouveau débit → on relance du début au prochain ▶
         stage.querySelectorAll('#speed button').forEach(x => x.classList.remove('on'));
         b.classList.add('on');
       });
