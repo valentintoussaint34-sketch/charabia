@@ -75,6 +75,13 @@ const U = {
       while (s < src.length - p && s < dst.length - p && src[src.length - 1 - s] === dst[dst.length - 1 - s]) s++;
       const mid = dst.slice(p, dst.length - s).join(' ');
       if (mid && g === mid) return true;
+      // portion corrigée + un peu de contexte (« viviendo aquí ») : accepté si
+      // la réponse contient la correction ET est un morceau contigu de la
+      // phrase corrigée (retour de Valentin du 31/07)
+      if (mid && (' ' + g + ' ').includes(' ' + mid + ' ')) {
+        const dstStr = ' ' + dst.join(' ') + ' ';
+        if (dstStr.includes(' ' + g + ' ')) return true;
+      }
     }
     return false;
   },
