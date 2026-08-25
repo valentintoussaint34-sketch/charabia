@@ -58,10 +58,8 @@ const Sync = {
     const gist = await res.json();
     let remote = null;
     try { remote = JSON.parse(gist.files[Sync.FILE].content); } catch (e) {}
-    const localT = Store.state.updated_at || 0;
-    const remoteT = (remote && remote.updated_at) || 0;
-    if (remote && remoteT > localT) {
-      // l'autre appareil est plus récent : on adopte son état, en gardant les clés locales
+    const adopt = () => {
+      // on adopte l'état distant, en gardant les clés locales
       const keep = {
         gemini_key: Store.state.settings.gemini_key,
         gh_token: Store.state.settings.gh_token,
@@ -73,11 +71,35 @@ const Sync = {
       Object.assign(Store.state.settings, keep);
       Store.save();
       return 'pulled';
-    }
+    };
+    // GARDE-FOU (incident du 01/08 : PC remis à zéro qui écrasait tout) :
+    // un état quasi vide ne gagne JAMAIS contre une vraie progression,
+    // quel que soit son horodatage.
+    const wL = Sync.weight(Store.state);
+    const wR = Sync.weight(remote);
+    const localEmpty = wL <= 5, remoteEmpty = wR <= 5;
+    if (remote && localEmpty && !remoteEmpty) return adopt();
+    if (!localEmpty && (!remote || remoteEmpty)) { await Sync.push(); return 'pushed'; }
+    // les deux ont une vraie progression (ou sont vides) : le plus récent gagne
+    const localT = Store.state.updated_at || 0;
+    const remoteT = (remote && remote.updated_at) || 0;
+    if (remote && remoteT > localT) return adopt();
     if (localT > remoteT) { await Sync.push(); return 'pushed'; }
     Store.state.settings.last_sync = Date.now();
     Store.save();
     return 'same';
+  },
+
+  // « poids » d'un état : sessions faites, cartes en mémoire, modules entamés
+  weight(state) {
+    let w = 0;
+    ['en', 'es'].forEach(l => {
+      const L = (state && state.langs && state.langs[l]) || {};
+      w += ((L.sessions_log || []).length) * 10
+        + Object.keys(L.srs || {}).length
+        + Object.keys(L.modules || {}).length * 5;
+    });
+    return w;
   },
 
   lastSyncLabel() {
